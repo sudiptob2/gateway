@@ -22,7 +22,7 @@ set -x
 # Create empty file that imports "github.com/AdamKorcz/go-118-fuzz-build/testing"
 # This is a small hack to install this dependency, since it is not used anywhere,
 # and Go would therefore remove it from go.mod once we run "go mod tidy && go mod vendor".
-printf "package main\nimport _ \"github.com/AdamKorcz/go-118-fuzz-build/testing\"\n" > register.go
+printf "package envoygateway\nimport _ \"github.com/AdamKorcz/go-118-fuzz-build/testing\"\n" > register.go
 go mod edit -replace github.com/AdamKorcz/go-118-fuzz-build="$SRC"/go-118-fuzz-build
 go mod tidy
 
