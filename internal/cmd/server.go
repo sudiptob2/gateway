@@ -7,9 +7,9 @@ package cmd
 
 import (
 	"context"
+	"io"
 
 	"github.com/spf13/cobra"
-	ctrl "sigs.k8s.io/controller-runtime"
 
 	egv1a1 "github.com/envoyproxy/gateway/api/v1alpha1"
 	"github.com/envoyproxy/gateway/internal/admin"
@@ -31,14 +31,14 @@ import (
 // cfgPath is the path to the EnvoyGateway configuration file.
 var cfgPath string
 
-// getServerCommand returns the server cobra command to be executed.
-func getServerCommand() *cobra.Command {
+// GetServerCommand returns the server cobra command to be executed.
+func GetServerCommand() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "server",
 		Aliases: []string{"serve"},
 		Short:   "Serve Envoy Gateway",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return server()
+			return server(cmd.Context(), cmd.OutOrStdout())
 		},
 	}
 	cmd.PersistentFlags().StringVarP(&cfgPath, "config-path", "c", "",
@@ -48,13 +48,12 @@ func getServerCommand() *cobra.Command {
 }
 
 // server serves Envoy Gateway.
-func server() error {
-	cfg, err := getConfig()
+func server(ctx context.Context, logOut io.Writer) error {
+	cfg, err := getConfig(logOut)
 	if err != nil {
 		return err
 	}
 
-	ctx := ctrl.SetupSignalHandler()
 	hook := func(c context.Context, cfg *config.Server) error {
 		cfg.Logger.Info("Setup runners")
 		if err := setupRunners(c, cfg); err != nil {
@@ -64,7 +63,7 @@ func server() error {
 		return nil
 	}
 	l := loader.New(cfgPath, cfg, hook)
-	if err := l.Start(ctx); err != nil {
+	if err := l.Start(ctx, logOut); err != nil {
 		return err
 	}
 
@@ -86,12 +85,12 @@ func server() error {
 }
 
 // getConfig gets the Server configuration
-func getConfig() (*config.Server, error) {
-	return getConfigByPath(cfgPath)
+func getConfig(logOut io.Writer) (*config.Server, error) {
+	return getConfigByPath(logOut, cfgPath)
 }
 
 // make `cfgPath` an argument to test it without polluting the global var
-func getConfigByPath(cfgPath string) (*config.Server, error) {
+func getConfigByPath(logOut io.Writer, cfgPath string) (*config.Server, error) {
 	// Initialize with default config parameters.
 	cfg, err := config.New()
 	if err != nil {
@@ -116,7 +115,7 @@ func getConfigByPath(cfgPath string) (*config.Server, error) {
 		cfg.EnvoyGateway = eg
 		// update cfg logger
 		eg.Logging.SetEnvoyGatewayLoggingDefaults()
-		cfg.Logger = logging.NewLogger(eg.Logging)
+		cfg.Logger = logging.NewLogger(logOut, eg.Logging)
 	}
 
 	if err := cfg.Validate(); err != nil {
