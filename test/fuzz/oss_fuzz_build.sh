@@ -6,7 +6,6 @@
 # the root of the repo.
 
 cd "$SRC"
-git clone --depth 1 https://github.com/sudiptob2/gateway.git
 
 git clone --depth=1 https://github.com/AdamKorcz/go-118-fuzz-build --branch=include-all-test-files
 cd go-118-fuzz-build
