@@ -36,4 +36,4 @@ go mod tidy
 compile_native_go_fuzzer github.com/envoyproxy/gateway/test/fuzz FuzzGatewayAPIToXDS fuzz_gateway_api_to_xds
 
 # add seed corpus
-#zip -j $OUT/FuzzGatewayAPIToXDS_seed_corpus.zip "$SRC"/gateway/test/fuzz/testdata/FuzzGatewayAPIToXDS/*
+zip -j $OUT/fuzz_gateway_api_to_xds_seed_corpus.zip "$SRC"/gateway/test/fuzz/testdata/FuzzGatewayAPIToXDS/*
