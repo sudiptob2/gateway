@@ -1624,12 +1624,22 @@ func (t *Translator) buildExtAuth(
 	if traffic, err = translateTrafficFeatures(backendSettings); err != nil {
 		return nil, err
 	}
+	var timeout *metav1.Duration
+	if policy.Spec.ExtAuth.Timeout != nil {
+		d, err := time.ParseDuration(string(*policy.Spec.ExtAuth.Timeout))
+		if err == nil {
+			timeout = &metav1.Duration{
+				Duration: d,
+			}
+		}
+	}
 	extAuth := &ir.ExtAuth{
 		Name:             irConfigName(policy),
 		HeadersToExtAuth: policy.Spec.ExtAuth.HeadersToExtAuth,
 		FailOpen:         policy.Spec.ExtAuth.FailOpen,
 		Traffic:          traffic,
 		RecomputeRoute:   policy.Spec.ExtAuth.RecomputeRoute,
+		Timeout:          timeout,
 	}
 
 	if http != nil {
