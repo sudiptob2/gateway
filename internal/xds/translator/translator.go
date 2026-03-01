@@ -762,6 +762,11 @@ func (t *Translator) processTCPListenerXdsTranslation(
 	// errors and return them at the end.
 	var errs, err error
 
+	// Track xDS listeners that already have an EmptyCluster filter chain.
+	// This prevents duplicate empty filter chains when multiple IR listeners
+	// map to the same xDS listener (same address:port) and have no routes.
+	emptyFilterChainAdded := make(map[string]bool)
+
 	for _, tcpListener := range tcpListeners {
 		// Search for an existing listener, if it does not exist, create one.
 		xdsListener := findXdsListenerByHostPort(tCtx, tcpListener.Address, tcpListener.Port, corev3.SocketAddress_TCP)
@@ -851,6 +856,15 @@ func (t *Translator) processTCPListenerXdsTranslation(
 		// If there are no routes, add a route without a destination to the listener to create a filter chain
 		// This is needed because Envoy requires a filter chain to be present in the listener, otherwise it will reject the listener and report a warning
 		if len(tcpListener.Routes) == 0 {
+			// Multiple IR listeners can map to the same xDS listener (same address:port).
+			// Only add one EmptyCluster filter chain per xDS listener to avoid duplicate
+			// filter chains with identical empty FilterChainMatch, which Envoy rejects.
+			listenerKey := xdsListener.Name
+			if emptyFilterChainAdded[listenerKey] {
+				continue
+			}
+			emptyFilterChainAdded[listenerKey] = true
+
 			if findXdsCluster(tCtx, emptyClusterName) == nil {
 				if err := tCtx.AddXdsResource(resourcev3.ClusterType, emptyRouteCluster); err != nil {
 					errs = errors.Join(errs, err)
